@@ -1,4 +1,5 @@
 '''
+v1:
 Sistema de Banco.
 Operações basicas: sacar, depositar e visualizar extrato.
 Sistema irá utilizar apenas uma conta.
@@ -9,9 +10,14 @@ Todos os aques devem ser armazenados em uma variável e exibidos no extrato.
 O extrato lista todos os depositos e saques realizados na conta. No fim da listagem, deve ser exibido o saldo atual da conta.
 Se o etrato estiver em branco, exibir a mensagem "Não foram realizadas movimentações".
 Os valores devem ser exibidos usando o formado "R$ xxx.xx".
+
+v2:
+Limite de transações diárias (saques ou depósitos) aumentado para 10.
+Informar que o usuário excedeu o número de transações permitidas para aquele dia.
 '''
 
-import datetime, os, time
+from datetime import datetime, time
+import os
 
 class Conta:
     """
@@ -37,18 +43,23 @@ class Conta:
         self.saldo = 0
         self.depositos = []
         self.saques = []
-        self.limite_saques = 3
+        self.limite_transacoes = 10
         self.valor_maximo_saques = 500
+        self.mascara_ptbr = "%d/%m/%Y %H:%M"
 
     def depositar(self, valor):
         """
-        Deposita fundos na conta.
+        Deposita fundos na conta e subtrai valor para o limite diario de transações
         
         Args:
             valor (float): o valor a ser depositado.
         """
-        self.saldo += valor
-        self.depositos.append((datetime.date.today(), valor))
+        if len(self.depositos + self.saques) < self.limite_transacoes:
+            self.saldo += valor
+            self.depositos.append((datetime.now().strftime(self.mascara_ptbr), valor))
+            return True
+        else:
+            return False
 
     def sacar(self, valor):
         """
@@ -64,9 +75,9 @@ class Conta:
         Returns:
             bool: True se o saque foi bem-sucedido, False caso contrário.
         """
-        if self.saldo >= valor and len(self.saques) < self.limite_saques and valor <= self.valor_maximo_saques:
+        if self.saldo >= valor and len(self.saques + self.depositos) < self.limite_transacoes and valor <= self.valor_maximo_saques:
             self.saldo -= valor
-            self.saques.append((datetime.date.today(), valor))
+            self.saques.append((datetime.now().strftime(self.mascara_ptbr), valor))
             return True
         else:
             return False
@@ -106,14 +117,17 @@ def main():
         if opcao == "1":
             valor = solicitar_valor("Digite o valor a ser depositado: ")
             if valor is not None:
-                conta.depositar(valor)
+                if conta.depositar(valor):
+                    print("Depósito realizado com sucesso!")
+                else:
+                    print("Limite diário de transações atingido!")
         elif opcao == "2":
             valor = solicitar_valor("Digite o valor a ser sacado: ")
             if valor is not None:
                 if conta.sacar(valor):
                     print("Saque realizado com sucesso!")
                 else:
-                    print("Saque negado!")
+                    print("Saque negado! Verifique se o saldo é suficiente, se o limite diário de saques foi atingido ou se o valor do saque é maior que o permitido.")
         elif opcao == "3":
             conta.visualizar_extrato()
         elif opcao == "4":
